@@ -268,8 +268,8 @@ class Tablero:
                         if tbTemporal[i+stepi*2][j+stepj*2] != 0:
                             choq +=1
                             if choq == 2:
-
-
+                                pass
+                            # falsta, hay que cambiar la valiidacion de mover una piedra 2 veces
                     else :
                         return False 
 
