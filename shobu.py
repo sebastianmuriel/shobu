@@ -561,7 +561,35 @@ class Tablero:
             
         self.dibujar_seleccion(screen)
         
+    
+    # me permite saber si hay ganador    
+    def estado_de_victoria(self):
+        fichas_IA = False
+        fichas_Humano = False
+
+        if not(1 in self.tns):
+            return "Humano" # gano humano
+        elif not(2 in self.tns):
+            return "IA" # gano humano
         
+        if not(1 in self.tni):
+            return "Humano" # gano humano
+        elif not(2 in self.tni):
+            return "IA" # gano humano
+        
+        if not(1 in self.tbs):
+            return "Humano" # gano humano
+        elif not(2 in self.tbs):
+            return "IA" # gano humano
+        
+        if not(1 in self.tbi):
+            return "Humano" # gano humano
+        elif not(2 in self.tbi):
+            return "IA" # gano humano
+        
+        return None
+
+
     # seleccionar pieza pasivamente
     def iterar(self, x, y):
 
