@@ -42,7 +42,7 @@ def main():
             if event.type == pygame.MOUSEBUTTONUP:
                 pos = pygame.mouse.get_pos()
                 #print(pos)
-                tabl.selecionar_pieza(pos[0],pos[1])
+                tabl.iterar(pos[0],pos[1])
                 
             # evento de salida
             if event.type == pygame.QUIT:

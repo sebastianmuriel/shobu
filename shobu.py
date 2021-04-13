@@ -60,7 +60,7 @@ class Tablero:
         self.posibles_movimientos = [] 
         # movimiento guardado desde pasivo para agresivo
         self.movimiento_reciente = None
-        self.tablero_reciente = 0
+        self.tableros_obligatorios = 0
         self.tipo_movimiento = 1 # 1 pasivo 2 agresivo
         
         # 1 2
@@ -71,10 +71,11 @@ class Tablero:
         # 2 IA
         self.turno = 1
 
-        #Fuente 
+        #Fuente  
         self.font = pygame.font.Font(None,30)
 
 
+    # imprimir tablero por consola
     def print_tablero(self):
         # recorrido vertical
         for i in range(8):
@@ -86,6 +87,7 @@ class Tablero:
                 print(str(self.tni[i-4]) + " " + str( self.tbi[i-4]))
 
 
+    # dibujar un rectangulo
     def dibujar_rect(self, screen, i, j, color, h_g = 0, v_g = 0):
 
         offset_sombra = 6
@@ -119,6 +121,7 @@ class Tablero:
                     self.escala - offset_sombra))
 
 
+    # dibujar pieza
     def dibujar_pieza(self, screen, indicador, i, j, h_g=0, v_g=0):
         if indicador == 0:
             # no hacer nada si la no hay fichas
@@ -152,6 +155,7 @@ class Tablero:
                     self.escala_ficha-4))
 
 
+    # dibujar el selector
     def dibujar_selector(self, screen, i, j, h_g=0, v_g=0):
         pygame.draw.ellipse(
             screen, 
@@ -174,6 +178,7 @@ class Tablero:
                 ),width=4)
 
 
+    # obtener el tablero que se estáa manejando 
     def obtener_tablero(self ):
         if self.tableto_movimientos ==1:
             return self.tns
@@ -208,7 +213,7 @@ class Tablero:
 
     # permite validar un movimiento agresivo determinado
     def validar_movimiento_agresivo(self, i, j, si, sj, tableroAgresivo):
-
+        
         # no desborde la matriz
         if (si < 0 or si > 3 ) or (sj < 0 or sj > 3 ):
             return False
@@ -401,7 +406,6 @@ class Tablero:
     
     # dibuja las posibilidades de movimento para una ficha determinada
     def dibujar_posibilidades_pasivas(self, screen):
-        
         if self.tableto_movimientos == 3:
             resi = -4
             resj = 0
@@ -425,12 +429,47 @@ class Tablero:
 
         
         #print(self.posibles_movimientos)
+
+
+    # dibuja las posibilidades de movimientos para una ficha en estado agresivo
+    def dibujar_posibilidades_agresivas(self, screen):
+        if self.tableto_movimientos == 1:
+            resi = 0
+            resj = 0
+        elif self.tableto_movimientos == 2:
+            resi = 0
+            resj = -4
+        elif self.tableto_movimientos == 3:
+            resi = -4
+            resj = 0
+        else :
+            resi = -4
+            resj = -4
         
         
-                        
+        i = self.pos_selection[0] + resi
+        j = self.pos_selection[1] + resj
+        si = i  +self.movimiento_reciente[0] 
+        sj = j  +self.movimiento_reciente[1] 
+        
+        if self.validar_movimiento_agresivo(i,j,si,sj, self.obtener_tablero()):
+            
+            if self.tableto_movimientos == 1:
+                self.dibujar_linea(screen,i,j, si, sj, 0, 0, 0, 0)
+
+            elif self.tableto_movimientos == 2:
+                self.dibujar_linea(screen,i,j, si, sj, self.h_gap, 0, 0, 4)
+
+            elif self.tableto_movimientos == 3:
+                self.dibujar_linea(screen,i,j, si, sj, 0, self.v_gap, 4, 0)
+
+            elif self.tableto_movimientos == 4:
+                self.dibujar_linea(screen,i,j, si, sj, self.h_gap, self.v_gap, 4, 4)
+                
 
 
 
+    # dibujar la 
     def dibujar_seleccion(self, screen):
 
         if self.pos_selection != None:
@@ -455,9 +494,16 @@ class Tablero:
                     self.dibujar_selector(screen, i, j, self.h_gap, self.v_gap)
         
         if self.pos_selection != None:
-            self.dibujar_posibilidades_pasivas(screen)  
+            if self.tipo_movimiento == 1:
+                # movimiento pasivo
+                self.dibujar_posibilidades_pasivas(screen)  
+            else: 
+                # movimiento agresivo
+                
+                self.dibujar_posibilidades_agresivas(screen)
 
 
+    # dibuja la barra superior
     def dibujar_barra(self, screen):
         if self.turno == 1:
             turnoText = "Turno: Humano"
@@ -517,9 +563,7 @@ class Tablero:
         
         
     # seleccionar pieza pasivamente
-    def selecionar_pieza(self, x, y):
-
-        
+    def iterar(self, x, y):
 
         limx = self.x_offset + self.h_gap + self.escala*8 - 6
         limy = self.y_offset + self.v_gap + self.escala*8 - 6
@@ -579,58 +623,166 @@ class Tablero:
                 # solo permitir selecionar los homeboards
                 if self.tableto_movimientos == 3 or self.tableto_movimientos == 4:
                     self.pos_selection = (i,j)
+            elif self.tipo_movimiento == 2:
+                # el movimiento es agresivo
+                if self.tableto_movimientos in self.tableros_obligatorios:
+                    self.pos_selection = (i,j)
+
         else:
             # valido que se quiera colocar una nueva posicon para el moviento pasivo
             if self.pos_selection != None:
-                
-                if self.tableto_movimientos == 1:
-                    pos_ni = i   
-                    pos_nj = j
-                elif self.tableto_movimientos == 2:
-                    pos_ni = i   
-                    pos_nj = j-4
-                elif self.tableto_movimientos == 3:
-                    pos_ni = i-4
-                    pos_nj = j
+                if self.tipo_movimiento == 1:
+                    # movimiento pasivo
+                    
+                    if self.tableto_movimientos == 1:
+                        pos_ni = i   
+                        pos_nj = j
+                    elif self.tableto_movimientos == 2:
+                        pos_ni = i   
+                        pos_nj = j-4
+                    elif self.tableto_movimientos == 3:
+                        pos_ni = i-4
+                        pos_nj = j
 
-                    pos_rel_i = self.pos_selection[0] - 4
-                    pos_rel_j = self.pos_selection[1] 
-                else:
-                    pos_ni = i-4
-                    pos_nj = j-4
+                        pos_rel_i = self.pos_selection[0] - 4
+                        pos_rel_j = self.pos_selection[1] 
+                    else:
+                        pos_ni = i-4
+                        pos_nj = j-4
 
-                    pos_rel_i = self.pos_selection[0] - 4
-                    pos_rel_j = self.pos_selection[1] - 4
+                        pos_rel_i = self.pos_selection[0] - 4
+                        pos_rel_j = self.pos_selection[1] - 4
 
-                
-                if (pos_ni,pos_nj) in self.posibles_movimientos:
-                    # pasa a monimiento agresivo
-                    #self.tipo_movimiento = 2
-                    # Mover la ficha de posición
-                    if self.tableto_movimientos == 3:
-                        # el tablero negro inferior
-                        print("Mover en 3", (pos_rel_i, pos_rel_j), (pos_ni,pos_nj))
-                        self.tni[pos_rel_i][pos_rel_j] = 0
-                        self.tni[pos_ni][pos_nj] = 2
-                        
-                    elif self.tableto_movimientos == 4:
-                        print("Mover en 4", (pos_rel_i, pos_rel_j), (pos_ni,pos_nj))
-                        self.tbi[pos_rel_i][pos_rel_j] = 0
-                        self.tbi[pos_ni][pos_nj] = 2
-                        
-                    self.pos_selection = None    
-                    # guardar el movimiento agresivo
-                    self.movimiento_reciente = (pos_ni- pos_rel_i, pos_nj- pos_rel_j)
-                    # guardat tablero agresivo obligatorio
-                    # limitar la interacción con el tablero contrario
+                    
+                    if (pos_ni,pos_nj) in self.posibles_movimientos:
+                        # pasa a monimiento agresivo
+                        self.tipo_movimiento = 2
+                        # Mover la ficha de posición
+                        if self.tableto_movimientos == 3:
+                            # el tablero negro inferior
+                            print("Mover en 3", (pos_rel_i, pos_rel_j), (pos_ni,pos_nj))
+                            self.tni[pos_rel_i][pos_rel_j] = 0
+                            self.tni[pos_ni][pos_nj] = 2
+                            
+                        elif self.tableto_movimientos == 4:
+                            print("Mover en 4", (pos_rel_i, pos_rel_j), (pos_ni,pos_nj))
+                            self.tbi[pos_rel_i][pos_rel_j] = 0
+                            self.tbi[pos_ni][pos_nj] = 2
+                            
+                        self.pos_selection = None    
+                        # guardar el movimiento agresivo
+                        self.movimiento_reciente = (pos_ni- pos_rel_i, pos_nj- pos_rel_j)
+                        # guardat tablero agresivo obligatorio
+                        if self.tableto_movimientos == 3:
+                            # juugue en negro. debo jugar en blanco 
+                            self.tableros_obligatorios  = (2,4)
+                        elif self.tableto_movimientos == 4:
+                            self.tableros_obligatorios  = (1,3)
 
-                    print("Mover")
-                else:
-                    self.pos_selection = None
-                    # reinicio posibles jugadas
-                    self.posibles_movimientos.clear()
+                        # limitar la interacción con el tablero contrario
+                    else:
+                        self.pos_selection = None
+                        # reinicio posibles jugadas
+                        self.posibles_movimientos.clear()
         
-                
+                else:
+                    # movimiento agresivo
+                   
+                    if self.tableto_movimientos == 1:
+                        pos_ni = i   
+                        pos_nj = j
+
+                        pos_rel_i = self.pos_selection[0] 
+                        pos_rel_j = self.pos_selection[1] 
+                    elif self.tableto_movimientos == 2:
+                        pos_ni = i   
+                        pos_nj = j-4
+
+                        pos_rel_i = self.pos_selection[0] 
+                        pos_rel_j = self.pos_selection[1] -4
+                    elif self.tableto_movimientos == 3:
+                        pos_ni = i-4
+                        pos_nj = j
+
+                        pos_rel_i = self.pos_selection[0] - 4
+                        pos_rel_j = self.pos_selection[1] 
+                    else:
+                        pos_ni = i-4
+                        pos_nj = j-4
+
+                        pos_rel_i = self.pos_selection[0] - 4
+                        pos_rel_j = self.pos_selection[1] - 4
+
+                    # lo mexclo con el reciente
+                    
+                    
+                    if (pos_ni , pos_nj ) == (pos_rel_i + self.movimiento_reciente[0], pos_rel_j + self.movimiento_reciente[1]):
+                        # se puede realizar el movimiento agresivo
+                        distancia_i = pos_ni - pos_rel_i
+                        distancia_j = pos_nj - pos_rel_j
+
+                        if distancia_i < 0:
+                            #subiendo
+                            aumentoI = -1
+                        elif distancia_i > 0:
+                            # bajando
+                            aumentoI = 1
+                        else:
+                            #quieto
+                            aumentoI = 0
+                        
+                        if distancia_j < 0:
+                            #izquierda
+                            aumentoJ = -1
+                        elif distancia_j > 0:
+                            #derecha
+                            aumentoJ = 1
+                        else:
+                            #quieto
+                            aumentoJ = 0
+                        
+                        piedras = 0
+                        posi = pos_rel_i + aumentoI
+                        posj = pos_rel_j + aumentoJ
+                        tableroAgresivo = self.obtener_tablero()
+                        # verifica que no hayan mas de 2 piedras en el camino
+                        while True:
+
+                            if tableroAgresivo[posi][posj] == 1:
+                                piedras += 1
+                                tableroAgresivo[posi][posj] = 0 # elimino la ficha rival
+                            
+                            if posi == pos_ni  and  posj == pos_nj :
+                                break
+
+                            if (posi > 0 and posi < 3) and posi != pos_ni:
+                                posi += aumentoI
+                            if (posj > 0 and posj < 3) and posj != pos_nj:
+                                posj += aumentoJ
+
+                        # movimiento interno
+                        self.obtener_tablero()[pos_ni][pos_nj] = 2
+                        self.obtener_tablero()[pos_rel_i][pos_rel_j] = 0
+
+                        # verificar si se corre una piedra o se expulsa
+                        posi += aumentoI
+                        posj += aumentoJ
+                        if (posi >= 0  and posi < 4) and (posj >= 0  and posj < 4):
+                            if piedras == 1:
+                                # puedo colocar la piedra enemiga de nuevo
+                                self.obtener_tablero()[posi][posj] = 1
+                        
+
+                        # limpi rastros
+                        self.pos_selection = None
+                        # reinicio posibles jugadas
+                        self.posibles_movimientos.clear()
+                        print("Mover agresivammente")
+
+                        # cambio el movimiento
+                        self.tipo_movimiento = 1
+
+
         
 
             
