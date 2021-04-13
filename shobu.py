@@ -1,5 +1,6 @@
 import numpy as np
 import pygame
+from pygame.math import Vector2
 
 class Tablero:
 
@@ -11,16 +12,18 @@ class Tablero:
         # 2 BICHA NEGRA
 
         self.tns = np.array(
-                [ [1, 1, 1, 1],[0, 0, 0, 0],[0, 0, 0, 0],[2, 2, 2, 2] ])
+                [ [0, 1, 1, 1],[0, 0, 0, 0],[1, 0, 0, 0],[2, 2, 2, 2] ])
 
+        #self.tbs = np.array(
+        #        [ [1, 1, 1, 1],[0, 0, 0, 0],[0, 0, 0, 0],[2, 2, 2, 2] ])
         self.tbs = np.array(
-                [ [1, 1, 1, 1],[0, 0, 0, 0],[0, 0, 0, 0],[2, 2, 2, 2] ])
+                [ [1, 1, 1, 1],[2, 2, 0, 0],[0, 0, 0, 0],[0, 0, 2, 2] ])
 
         self.tni = np.array(
-                [ [1, 1, 1, 1],[0, 0, 0, 0],[0, 0, 0, 0],[2, 2, 2, 2] ])
+                [ [1, 1, 1, 1],[0, 2, 0, 0],[0, 0, 0, 0],[2, 0, 2, 2] ])
 
         self.tbi = np.array(
-                [ [1, 1, 1, 1],[0, 0, 0, 0],[0, 0, 0, 0],[2, 2, 2, 2] ])
+                [ [1, 1, 1, 1],[2, 0, 0, 0],[0, 2, 0, 0],[0, 0, 2, 2] ])
 
         
         #self.cafe_claro = (237, 224, 212)
@@ -50,8 +53,14 @@ class Tablero:
         self.h_gap = self.escala/2
         self.v_gap = self.escala
 
+        # posicion que representa la ficha selecionada
         self.pos_selection = None
-
+        # posibles movimientos cargados por la logica
+        # reglamentaria del juego
+        self.posibles_movimientos = [] 
+        # movimiento guardado desde pasivo para agresivo
+        self.movimiento_reciente = None
+        self.tablero_reciente = 0
         self.tipo_movimiento = 1 # 1 pasivo 2 agresivo
         
         # 1 2
@@ -165,129 +174,261 @@ class Tablero:
                 ),width=4)
 
 
-    def obtener_tablero(self):
+    def obtener_tablero(self ):
         if self.tableto_movimientos ==1:
             return self.tns
         elif self.tableto_movimientos == 2:
             return self.tbs
-        elif self.tipo_movimiento == 3:
+        elif self.tableto_movimientos == 3:
             return self.tni
-        elif self.tipo_movimiento == 4:
+        elif self.tableto_movimientos == 4:
             return self.tbi
 
-    
-    def validar_movimiento(self, i, j, mai, maj):
-        if (mai >= 0 and mai < 4)  and (maj >= 0 and maj < 4 ):
-            # Movimiento dentro del tablero
-            difI = i - mai
-            difJ = j - maj
-            if (difI*difI <= 4 ) and (difJ*difJ <= 4):
-                # el movimiento se esta haciendo maximo de 2 espacios
 
-                if self.tableto_movimientos == 1:
-                    # es pasivo, por ende no puede empuajar rocas
-                    if difI == 0 or difJ == 0:
-                        if difJ == 0:
-                            tbTemporal = self.obtener_tablero()
-                            if difI < 0:
-                                # estoy bajando
-                                choq = 0
-                                for iterat in range(i+1, mai+1):
-                                    if tbTemporal[iterat][j] != 0:
-                                        choq += 1
-                                    if choq > 0 and self.tipo_movimiento == 1:
-                                        return False
-                                    if choq > 0 and (iterat != mai):
-                                        return False
-                                    if choq == 2 :
-                                        return False
-                            else:
-                                # eestoy suibir
-                                choq = 0
-                                for iterat in range(i-1, mai-1,-1):
-                                    if tbTemporal[iterat][j] != 0:
-                                        choq += 1
-                                    if choq > 0 and self.tipo_movimiento == 1:
-                                        return False
-                                    if choq > 0 and (iterat != mai):
-                                        return False
-                                    if choq == 2 :
-                                        return False
-                        else:
-                            tbTemporal = self.obtener_tablero()
-                            if difJ < 0:
-                                # derecha
-                                choq = 0
-                                for iterat in range(j+1, maj+1):
-                                    if tbTemporal[i][iterat] != 0:
-                                        choq += 1
-                                    if choq > 0 and self.tipo_movimiento == 1:
-                                        return False
-                                    if choq > 0 and (iterat != mai):
-                                        return False
-                                    if choq == 2 :
-                                        return False
-                            else:
-                                # izquierda
-                                choq = 0
-                                for iterat in range(j-1, maj-1):
-                                    if tbTemporal[i][iterat] != 0:
-                                        choq += 1
-                                    if choq > 0 and self.tipo_movimiento == 1:
-                                        return False
-                                    if choq > 0 and (iterat != mai):
-                                        return False
-                                    if choq == 2 :
-                                        return False
+    # dibuja una linea de punto a punto
+    def dibujar_linea(self, screen, i, j, si, sj, h_g = 0, v_g = 0, tab_i=0, tab_j=0):
+        pygame.draw.line(screen, 
+                        (177, 183, 209), 
+                        Vector2(self.x_offset + self.x_offset_ficha + h_g + self.escala_ficha/2 + self.escala*(j+tab_j),
+                        self.y_offset + self.y_offset_ficha + v_g + self.escala_ficha/2 + self.escala*(i+tab_i)),
+                        Vector2(self.x_offset + self.x_offset_ficha + h_g + self.escala_ficha/2 + self.escala*(sj+tab_j),
+                        self.y_offset + self.y_offset_ficha + v_g + self.escala_ficha/2 + self.escala*(si+tab_i)),
+                        width=3
+                    )
+        pygame.draw.ellipse(
+            screen,
+            (177, 183, 209), 
+            pygame.Rect(
+                self.x_offset + self.x_offset_ficha + h_g + self.escala_ficha/2 + self.escala*(sj+tab_j) - 5,
+                self.y_offset + self.y_offset_ficha + v_g + self.escala_ficha/2 + self.escala*(si+tab_i) - 5,
+                10,10
+            )
+        )
 
-                         
-                    elif difJ*difJ == 1 and difJ*difJ == difI*difI:
-                        tbTemporal = self.obtener_tablero
 
-                        if tbTemporal[mai][maj] != 0 and self.tipo_movimiento == 1:
-                            return False
-                        
-                    elif difJ*difJ == 4 and difJ*difJ == difI*difI:
-                        if difI < 0:
-                            stepi = -1
-                        else:
-                            stepi = 1
+    # permite validar un movimiento agresivo determinado
+    def validar_movimiento_agresivo(self, i, j, si, sj, tableroAgresivo):
 
-                        if difJ < 0:
-                            stepj = -1
-                        else:
-                            stepj = 1
-                        
-                        choq = 0
-                        if tbTemporal[i+stepi][j+stepj] != 0:
-                            if self.tipo_movimiento == 1:
-                                return False
-                            else:
-                                choq += 1   
-                        
-                        if tbTemporal[i+stepi*2][j+stepj*2] != 0:
-                            choq +=1
-                            if choq == 2:
-                                pass
-                            # falsta, hay que cambiar la valiidacion de mover una piedra 2 veces
-                    else :
-                        return False 
+        # no desborde la matriz
+        if (si < 0 or si > 3 ) or (sj < 0 or sj > 3 ):
+            return False
+        
+        distancia_i = si - i
+        distancia_j = sj - j
 
-                else:
-                    # es agresivo puede empujar roca, pero no más una
-                    pass
+        if distancia_i < 0:
+            #subiendo
+            aumentoI = -1
+        elif distancia_i > 0:
+            # bajando
+            aumentoI = 1
+        else:
+            #quieto
+            aumentoI = 0
+        
+        if distancia_j < 0:
+            #izquierda
+            aumentoJ = -1
+        elif distancia_j > 0:
+            #derecha
+            aumentoJ = 1
+        else:
+            #quieto
+            aumentoJ = 0
+         
+        # recorrer cada componente para ver que no hallan piedras
+        piedras = 0
+        posi = i + aumentoI
+        posj = j + aumentoJ
+        
+        # verifica que no hayan mas de 2 piedras en el camino
+        while True:
+            # no puedo ocupar una casilla ya ocupada
+            if tableroAgresivo[posi][posj] == 2:
+                return False
+
+            if tableroAgresivo[posi][posj] == 1:
+                piedras += 1
+
+            if piedras == 2:
+                return False
+            
+            if posi == si  and  posj == sj :
+                break
+
+            if (posi > 0 and posi < 3) and posi != si:
+                posi += aumentoI
+            if (posj > 0 and posj < 3) and posj != sj:
+                posj += aumentoJ
+        
+        # la piedra de más adelante
+        posi += aumentoI
+        posj += aumentoJ
+
+        if (posi >= 0  and posi < 4) and (posj >= 0  and posj < 4):
+            if piedras == 1:
+                # no puedo empujar una piedra donde ya hay una piedra
+                if tableroAgresivo[posi][posj] != 0:
+                    return False
+        
+        return True
+
+
+    # permite saber si un movimietno se puede replicar de forma agresiva
+    def replica_posible(self, i, j, si, sj):
+        ## se hace de cuanta de que el movimiento pasivo ya existe
+        if self.tableto_movimientos == 3 :
+            tableros_agresivos = (self.tbs, self.tbi)
+        else :
+            tableros_agresivos = (self.tns, self.tni)
+        
+        # rrecorridos
+        recorrido_i = si - i
+        recorrido_j = sj - j
+
+        for tabla in tableros_agresivos:
+            # reccorer tableros
+            for posi in range(4):
+                for posj in range(4):
+                    if (posi >= 0  and posi < 4) and (posj >= 0  and posj < 4):
+                        if tabla[posi][posj] == 2:
+                            # encontre una fucha mia, se verifica 
+                            # si esta peude replicar mi de maner agresiva
+                            if self.validar_movimiento_agresivo(posi,posj,posi + recorrido_i,posj + recorrido_j, tabla):
+                                return True
+        
+        # porque no encontre como replicar el movimiento en 
+        # las sotras fichas del ablero de coolor contrario
+        return False
+        
+
+    # valida un movimento pasivo
+    def validar_movimiento_pasivo(self, i, j, si, sj):
+        
+        if self.tipo_movimiento == 1:
+            # seria un movimiento pasivo
+
+            # solo se puede hacer en los tablelor homeboaard
+            # 1 2
+            # 3 4
+            if self.tableto_movimientos != 3 and self.tableto_movimientos != 4:
+                return False
+            # si no se hace por fuera de la matriz
+            if (si < 0 or si > 3 ) or (sj < 0 or sj > 3 ):
+                return False
+            
+            # no pueden empujar piedras
+            #   0 1 2 3
+            # 0 x x 1 x
+            # 1 x x x x
+            # 2 x x 1 x
+            # 3 x x 2 x
+
+            distancia_i = si - i
+            distancia_j = sj - j
+
+            # el movimiento es más largo de lo que debe
+            if distancia_i*distancia_j > 4 or distancia_j*distancia_j > 4:
+                return False
+
+            if distancia_i < 0:
+                #subiendo
+                aumentoI = -1
+            elif distancia_i > 0:
+                # bajando
+                aumentoI = 1
+            else:
+                #quieto
+                aumentoI = 0
+            
+            if distancia_j < 0:
+                #izquierda
+                aumentoJ = -1
+            elif distancia_j > 0:
+                #derecha
+                aumentoJ = 1
+            else:
+                #quieto
+                aumentoJ = 0
+        
+
+            # limite de movimietos es de 2 cacillas
+            if distancia_i*distancia_i > 4 or distancia_j*distancia_j > 4:
+                return False
+
+            # movimientos en L
+            if distancia_i*distancia_i + distancia_j*distancia_j == 5:
+                return False
+            
+
+            # genero las primeras posiciones
+            posi = i + aumentoI
+            posj = j + aumentoJ
+            
+            # verifica que no hayan piedras en el recorrido
+            while True:
+                # no puedo ocupar empujar si estoy moviendo pasivo
+
+                if (posi < 0 or posi > 3) or (posj < 0 or posj > 3):
+                    return False
+                
+                if self.obtener_tablero()[posi][posj] != 0:
+                    return False
+
+                if posi == si  and  posj == sj :
+                    break
+
+                if (posi > 0 and posi < 3) and posi != si:
+                    posi += aumentoI
+                if (posj > 0 and posj < 3) and posj != sj:
+                    posj += aumentoJ
+
+            # buscar si la ficha exxiste otra dicha distina a la presente que pueda duplicar el movimiento
+            #return self.replica_posible(i, j, si, sj)
+
+            if self.replica_posible(i, j, si, sj):
+                
+                self.posibles_movimientos.append((si,sj))
+                return True
             else:
                 return False
+            #return True
+
         else:
+            # seria un movimiento agressivo
             return False
-
-
-    def dibujar_posibilidades(self, screen):
-        pass
-        #i = self.pos_selection[0] 
-        #j = self.pos_selection[1]
+            
+    
+    # dibuja las posibilidades de movimento para una ficha determinada
+    def dibujar_posibilidades_pasivas(self, screen):
+        
+        if self.tableto_movimientos == 3:
+            resi = -4
+            resj = 0
+        else :
+            resi = -4
+            resj = -4
+        
+        i = self.pos_selection[0] + resi
+        j = self.pos_selection[1] + resj
 
         
+        for posi in range(i - 2,i + 3 , 1):
+            for posj in range(j - 2,j + 3, 1):
+                if self.validar_movimiento_pasivo(i ,j,posi,posj):
+                    
+                    if self.tableto_movimientos == 3:
+                        self.dibujar_linea(screen,i,j, posi,posj, 0, self.v_gap, 4, 0)
+                        
+                    elif self.tableto_movimientos == 4:
+                        self.dibujar_linea(screen,i,j, posi,posj, self.h_gap, self.v_gap, 4,4)
+
+        
+        #print(self.posibles_movimientos)
+        
+        
+                        
+
 
 
     def dibujar_seleccion(self, screen):
@@ -312,8 +453,9 @@ class Tablero:
                 else:
                     # tablero claro
                     self.dibujar_selector(screen, i, j, self.h_gap, self.v_gap)
-
-        self.dibujar_posibilidades(screen)
+        
+        if self.pos_selection != None:
+            self.dibujar_posibilidades_pasivas(screen)  
 
 
     def dibujar_barra(self, screen):
@@ -342,6 +484,7 @@ class Tablero:
 
 
     def dibujar_all(self, screen):
+        self.posibles_movimientos.clear()
         # dibujar barra de estado
         self.dibujar_barra(screen)
         # recorrer tablero
@@ -368,13 +511,15 @@ class Tablero:
                         # tablero claro
                         self.dibujar_rect(screen, i, j, self.cafe_claro, self.h_gap, self.v_gap)
                         self.dibujar_pieza(screen, self.tbi[i-4][j-4] , i, j, self.h_gap, self.v_gap)
-
+        
+            
         self.dibujar_seleccion(screen)
-
-
-
+        
+        
+    # seleccionar pieza pasivamente
     def selecionar_pieza(self, x, y):
 
+        
 
         limx = self.x_offset + self.h_gap + self.escala*8 - 6
         limy = self.y_offset + self.v_gap + self.escala*8 - 6
@@ -383,11 +528,13 @@ class Tablero:
         rangoNY = self.y_offset + self.escala*4 - 6
 
 
-        # validar ejecucion solo en click para lso tableros
+        # validar ejecucion solo en click para los tableros
         if ((x <= self.x_offset or y <= self.y_offset) or \
                 (x > limx or y > limy)) or \
                 (( x > rangoNX and x < rangoNX + self.h_gap +6)or \
                 ( y > rangoNY and y < rangoNY + self.v_gap + 6)) :
+            self.pos_selection = None
+            self.posibles_movimientos.clear()
             return 0
 
         # determinar la posicion del selector 
@@ -397,14 +544,12 @@ class Tablero:
                 # arriba
                 j = int((x - self.x_offset) // self.escala)
                 i = int((y - self.y_offset) // self.escala)
-                print(i,j)
                 valor_selecionado = self.tns[i][j]
                 self.tableto_movimientos = 1
             else:
                 # abajo
                 j = int((x - self.x_offset) // self.escala)
                 i = int((y - self.y_offset - self.v_gap) // self.escala)
-                print(i,j)
                 valor_selecionado = self.tni[i-4][j]
                 self.tableto_movimientos = 3
 
@@ -414,7 +559,7 @@ class Tablero:
                 # arriba
                 j = int((x - self.x_offset - self.h_gap) // self.escala)
                 i = int((y - self.y_offset ) // self.escala)
-                print(i,j)
+                
                 valor_selecionado = self.tbs[i][j-4]
                 self.tableto_movimientos = 2
 
@@ -422,18 +567,77 @@ class Tablero:
                 # abajo
                 j = int((x - self.x_offset - self.h_gap) // self.escala)
                 i = int((y - self.y_offset - self.v_gap) // self.escala)
-                print(i,j)
+                
                 valor_selecionado = self.tbi[i-4][j-4]
                 self.tableto_movimientos = 4
             
-
         if valor_selecionado == 2 :
-            # el movimineto que se quiere hacer es pasivo
+            
+            # quiero moverme 
             if self.tipo_movimiento == 1:
                 # si el movimiento esta en tipo pasivo, 
                 # solo permitir selecionar los homeboards
                 if self.tableto_movimientos == 3 or self.tableto_movimientos == 4:
                     self.pos_selection = (i,j)
+        else:
+            # valido que se quiera colocar una nueva posicon para el moviento pasivo
+            if self.pos_selection != None:
+                
+                if self.tableto_movimientos == 1:
+                    pos_ni = i   
+                    pos_nj = j
+                elif self.tableto_movimientos == 2:
+                    pos_ni = i   
+                    pos_nj = j-4
+                elif self.tableto_movimientos == 3:
+                    pos_ni = i-4
+                    pos_nj = j
+
+                    pos_rel_i = self.pos_selection[0] - 4
+                    pos_rel_j = self.pos_selection[1] 
+                else:
+                    pos_ni = i-4
+                    pos_nj = j-4
+
+                    pos_rel_i = self.pos_selection[0] - 4
+                    pos_rel_j = self.pos_selection[1] - 4
+
+                
+                if (pos_ni,pos_nj) in self.posibles_movimientos:
+                    # pasa a monimiento agresivo
+                    #self.tipo_movimiento = 2
+                    # Mover la ficha de posición
+                    if self.tableto_movimientos == 3:
+                        # el tablero negro inferior
+                        print("Mover en 3", (pos_rel_i, pos_rel_j), (pos_ni,pos_nj))
+                        self.tni[pos_rel_i][pos_rel_j] = 0
+                        self.tni[pos_ni][pos_nj] = 2
+                        
+                    elif self.tableto_movimientos == 4:
+                        print("Mover en 4", (pos_rel_i, pos_rel_j), (pos_ni,pos_nj))
+                        self.tbi[pos_rel_i][pos_rel_j] = 0
+                        self.tbi[pos_ni][pos_nj] = 2
+                        
+                    self.pos_selection = None    
+                    # guardar el movimiento agresivo
+                    self.movimiento_reciente = (pos_ni- pos_rel_i, pos_nj- pos_rel_j)
+                    # guardat tablero agresivo obligatorio
+                    # limitar la interacción con el tablero contrario
+
+                    print("Mover")
+                else:
+                    self.pos_selection = None
+                    # reinicio posibles jugadas
+                    self.posibles_movimientos.clear()
+        
+                
+        
+
+            
+
+
+
+            
 
 
 
